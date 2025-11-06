@@ -4,14 +4,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-const int BLOCK_MULTIPLE_SIZE = 16;
-const int MAX_PAGES = 6;
+//moved to helpers as macros
+// const int BLOCK_MULTIPLE_SIZE = 16;
+// const int PAGE_SIZE = 4096;
+// const int HEADER_SIZE = 8;
+// const int PROLOGUE_SIZE = HEADER_SIZE;
+// const int EPILOGUE_SIZE = HEADER_SIZE;
+// const int PRO_EPI_SIZE = PROLOGUE_SIZE + EPILOGUE_SIZE;
+// const int MAX_PAGES = 6;
 char * mem_ptr = NULL;
 char * brk_ptr = NULL;
-const int PAGE_SIZE = 4096;
-const int PROLOGUE_SIZE = 8;
-const int EPILOGUE_SIZE = 8;
-const int PRO_EPI_SIZE = 16;
 
 void *ics_malloc(size_t size) { 
 	if (mem_ptr == NULL) { //very first call to malloc
@@ -20,6 +22,7 @@ void *ics_malloc(size_t size) {
 		brk_ptr = ics_get_brk();
 		ics_footer * prologue = mem_ptr; 
 		ics_free_header * start_header = mem_ptr + PROLOGUE_SIZE;
+		ics_footer * footer = brk_ptr - EPILOGUE_SIZE - HEADER_SIZE; 
 		ics_header * epilogue = brk_ptr - EPILOGUE_SIZE;
 		
 		initialize_prologue(prologue);
@@ -27,7 +30,7 @@ void *ics_malloc(size_t size) {
 		//set the header of the free block with the size = current page size - size of prologue and epilogue
 		//set it as the start of the linked list (in the buckets??)
 		set_free_header(start_header, PAGE_SIZE - PRO_EPI_SIZE, 0, NULL, NULL);
-		// !!set footer too
+		set_footer(footer, PAGE_SIZE - PRO_EPI_SIZE, 0, 0); // requested size is arbitary for a free block?
 	}
 	
 	//first time: allocate space (huge chunk of memory)
