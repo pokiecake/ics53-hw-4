@@ -22,7 +22,7 @@ void set_footer(ics_footer * footer, uint64_t size, uint64_t requested_size, uin
 
 void set_free_header(ics_free_header * free_header, uint64_t size, ics_free_header * next, ics_free_header * prev);
 
-char * allocate_block(uint64_t block_size, uint64_t requested_size, char * cur_addr);
+void * allocate_block(uint64_t block_size, uint64_t requested_size, char * cur_addr);
 
 void remove_block_from_list(ics_free_header * target, ics_free_header * new_block);
 
