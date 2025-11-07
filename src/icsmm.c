@@ -15,7 +15,13 @@
 void * mem_ptr = NULL;
 void * brk_ptr = NULL;
 
+#define DEBUG_PRINTING
+
+
 void *ics_malloc(size_t size) { 
+	//first time: allocate space (huge chunk of memory)
+	//-install prologue and epilogue (8 byters)
+	//-install header and footer
 	if (mem_ptr == NULL) { //very first call to malloc
 		// !!check for too many pages
 		mem_ptr = ics_inc_brk(); 
@@ -31,24 +37,45 @@ void *ics_malloc(size_t size) {
 		//set it as the start of the linked list (in the buckets??)
 		set_free_header(start_header, PAGE_SIZE - PRO_EPI_SIZE, NULL, NULL);
 		set_footer(footer, PAGE_SIZE - PRO_EPI_SIZE, 0, 0); // requested size is arbitary for a free block?
+		
+		seg_buckets[BUCKET_COUNT - 1].freelist_head = start_header; //make the head of the biggest list the header of the whole block
+		//DEBUG
+		#ifdef DEBUG_PRINTING
+			fflush(stdout);
+			printf("!!DEBUG PRINTING, DELETE IN FINAL VERSION!!\n");
+			fflush(stdout);
+			ics_freelist_print(4);
+			//ics_header_print((void *)start_header);
+			ics_header_print(epilogue);
+			printf("!!END DEBUG PRINTING!!\n");
+			getchar();
+			fflush(stdout);
+			
+		#endif
 	}
 	
-	//first time: allocate space (huge chunk of memory)
-	//-install prologue and epilogue (8 byters)
-	//-install header and footer
 	
 	//calculate minimum block size
 	size_t remainder = size % BLOCK_MULTIPLE_SIZE;
 	// if size is a multiple of 16, payload is the size. Else, move on to the next multiple of 16;
-	size_t payload_size = (remainder * BLOCK_MULTIPLE_SIZE == size ? size : (remainder + 1) * BLOCK_MULTIPLE_SIZE);
-	size_t block_size = payload_size + PRO_EPI_SIZE;
+	size_t payload_size = (remainder == 0 ? size : (size / BLOCK_MULTIPLE_SIZE + 1) * BLOCK_MULTIPLE_SIZE);
+	size_t block_size = payload_size + 16;
 	//find bucket to hold data
+	ics_bucket * bucket;
+	ics_free_header * free_block = find_available_block(block_size, &bucket);
+
+	while (free_block == NULL) {
+		// !!check for more than 6 pages
+		get_new_page(&brk_ptr);
+		free_block = find_available_block(block_size, &bucket);
+	}
 	//-if no splinter, split free block into allocated space and free chunck, update headers
 	//--put free chunk into a fitting list LIFO
 	//-if splinter, take the whole chunk and updat headers
+	void * ret_block_addr = allocate_block(block_size, size, (char *)free_block, bucket);
 	
 	
-    return NULL;//return address of payload
+    return ret_block_addr;//return address of payload
 }
 
 
