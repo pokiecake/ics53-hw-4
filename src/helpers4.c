@@ -128,34 +128,34 @@ void * allocate_block(uint64_t block_size, uint64_t requested_size, char * cur_a
 			// remove block from prev and next pointers 
 			remove_block_from_list(free_header, NULL, bucket);
 			ics_header * allocated_header = (ics_header *)free_header;
-			ics_footer * alloc_footer = (ics_footer *)((char *)(free_header) + allocated_header->block_size - HEADER_SIZE);
+			ics_footer * alloc_footer = (ics_footer *)(((char *)(free_header)) + allocated_header->block_size - HEADER_SIZE);
 			allocated_header->block_size += 1; // set allocated bit to 1
 			set_footer(alloc_footer, allocated_header->block_size, requested_size, 1);
 			// alloc_footer-block_size = allocated_header->block_size;
 			// alloc_footer->requested_size = requested_size;
 			// alloc_footer->fid = FOOTER_MAGIC;
 			
-			alloc_block = (void *)((char *)allocated_header + HEADER_SIZE); //to point the block to the payload
+			alloc_block = (void *)(((char *)(allocated_header)) + HEADER_SIZE); //to point the block to the payload
 		}
 		//if there is no fragmentation, allocate just enough and split the free block
 		else {
 			//create a new free block, updating its size accordingly
 			uint64_t new_free_block_size = free_header->header.block_size - block_size;
 			//cur_addr points to payload (next ptr), so must subtract header to get the true location of the future header.
-			ics_free_header * new_free_header = (ics_free_header *)(cur_addr + block_size - HEADER_SIZE);
+			ics_free_header * new_free_header = (ics_free_header *)(cur_addr + block_size);
 			set_free_header(new_free_header, new_free_block_size, NULL, NULL);
 			// set prev (or head) and next lists to point to new free block
 			remove_block_from_list(free_header, new_free_header, bucket);
 
 			ics_header * alloc_header = &free_header->header;
-			ics_footer * alloc_footer = (ics_footer *)((char *)(alloc_header) + block_size - 8);
+			ics_footer * alloc_footer = (ics_footer *)(((char *)(alloc_header)) + block_size - HEADER_SIZE);
 
 			//set the headers for the allocated block
 			set_header(alloc_header, block_size, 1);
 			//footer will be 8 bytes away from the end of the block
 			set_footer(alloc_footer, block_size, requested_size, 1);
 			
-			alloc_block = (void *)((char *)(alloc_header) + HEADER_SIZE); //to point the block to the payload
+			alloc_block = (void *)(((char *)(alloc_header)) + HEADER_SIZE); //to point the block to the payload
 		}
 	}
 
@@ -226,9 +226,9 @@ void * calc_footer_from_header(void * bp) { //bp is a header
 
 //returns pointer to start of new pointer
 ics_free_header * coalesce(void * bp) { //pointer to free block header
+	ics_free_header * coalesced_header = (ics_free_header *)bp;
 	ics_header * next_block = calc_next_block_header(bp);
 	ics_footer * prev_block = calc_prev_block_footer(bp);
-	ics_free_header * coalesced_header = (ics_free_header *)bp;
 	uint64_t middle_block_size = coalesced_header->header.block_size;
 	int next_block_alloc = next_block->block_size & 0x1, prev_block_alloc = prev_block->block_size & 0x1;
 	if (next_block_alloc == 1 && prev_block_alloc == 1) {
