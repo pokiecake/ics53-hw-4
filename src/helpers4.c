@@ -144,6 +144,8 @@ void * allocate_block(uint64_t block_size, uint64_t requested_size, char * cur_a
 			//cur_addr points to payload (next ptr), so must subtract header to get the true location of the future header.
 			ics_free_header * new_free_header = (ics_free_header *)(cur_addr + block_size);
 			set_free_header(new_free_header, new_free_block_size, NULL, NULL);
+			// !!set free block footer too!!
+			
 			// set prev (or head) and next lists to point to new free block
 			remove_block_from_list(free_header, new_free_header, bucket);
 
